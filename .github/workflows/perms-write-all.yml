@@ -1,0 +1,10 @@
+name: perms-write-all
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions: write-all
+jobs:
+  call:
+    # case: permissions-write-all
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/release.yml@main

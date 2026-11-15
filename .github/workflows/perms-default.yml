@@ -1,0 +1,9 @@
+name: perms-default
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  call:
+    # case: permissions-not-declared
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/release.yml@main

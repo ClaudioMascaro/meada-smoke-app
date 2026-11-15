@@ -1,0 +1,84 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  by-branch:
+    # case: pipeline-branch
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@main
+    with:
+      target: app
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+  by-tag:
+    # case: pipeline-tag
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@v1
+  by-old-commit:
+    # case: pipeline-old-commit
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@629f0c49d8aaa54cdb1f71ca8e872b8dda14b1a8
+  by-head-commit:
+    # case: pipeline-head-commit
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@51703923bd1f76c0b948db8afb1fa52fe86300c1
+  inherit:
+    # case: pipeline-secrets-inherit
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@main
+    secrets: inherit
+  through-wrapper:
+    # case: pipeline-through-wrapper
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/wrapper.yml@main
+  through-lib:
+    # case: pipeline-through-lib
+    uses: ClaudioMascaro/meada-smoke-lib/.github/workflows/check.yml@main
+  string-on:
+    # case: pipeline-string-on
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/string-on.yml@main
+  legacy:
+    # case: pipeline-absent-at-head
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/legacy.yml@v1
+  matrix:
+    # case: pipeline-matrix
+    strategy:
+      matrix:
+        target: [a, b]
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@main
+    with:
+      target: ${{ matrix.target }}
+  after:
+    # case: needs
+    needs: [by-branch, matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "after the calls"
+  actions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # case: action-root
+      - uses: ClaudioMascaro/meada-smoke-shared@main
+      # case: action-folder-tag
+      - uses: ClaudioMascaro/meada-smoke-shared/setup@v1
+      # case: action-folder-yaml
+      - uses: ClaudioMascaro/meada-smoke-shared/report@main
+      # case: action-old-commit
+      - uses: ClaudioMascaro/meada-smoke-shared/setup@629f0c49d8aaa54cdb1f71ca8e872b8dda14b1a8
+      # case: action-docker-only
+      - uses: ClaudioMascaro/meada-smoke-shared/image@main
+      # case: action-in-action (the caller of `chain`)
+      - uses: ClaudioMascaro/meada-smoke-shared/chain@main
+      # case: action-local
+      - uses: ./local-action
+      # case: action-docker-url
+      - uses: docker://alpine:3.20
+        with:
+          args: echo "docker url"
+  checkout-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: src
+      # case: action-local-after-path-checkout
+      - uses: ./src/local-action

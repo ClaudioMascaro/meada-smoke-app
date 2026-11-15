@@ -1,0 +1,10 @@
+name: perms-empty
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions: {}
+jobs:
+  call:
+    # case: permissions-empty
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/build.yml@main

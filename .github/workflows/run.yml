@@ -1,0 +1,77 @@
+name: run
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      # case: install-path
+      - run: pip install ./tools/greeter
+      # case: program-after-install
+      - run: smoke-greet installed
+  by-name:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: pip wheel ./tools/greeter --no-deps -w dist
+      # case: install-name
+      - run: pip install --no-index --find-links dist meada-smoke-greeter
+      # case: program-after-name-install
+      - run: smoke-greet by-name
+  hidden-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: ./scripts/setup.sh
+      # case: program-no-install
+      - run: smoke-greet hidden
+  pipx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # case: install-pipx
+      - run: pipx install ./tools/greeter
+      # case: program-after-pipx
+      - run: smoke-greet pipx
+  negatives:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # case: echo-is-no-command
+      - run: echo "pip install meada-smoke-greeter"
+      # case: heredoc-not-read
+      - run: |
+          cat <<EOF
+          pip install meada-smoke-greeter
+          EOF
+      # case: command-after-and
+      - run: true && pip --version; python3 --version
+  image:
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # case: docker-push
+      - run: |
+          docker build -t localhost:5000/smoke/app:1 .
+          docker push localhost:5000/smoke/app:1
+      # case: docker-build-no-push
+      - run: docker build -t localhost:5000/smoke/unpushed:1 .

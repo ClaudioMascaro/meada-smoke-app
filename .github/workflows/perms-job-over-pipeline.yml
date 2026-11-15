@@ -1,0 +1,13 @@
+name: perms-job-over-pipeline
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  call:
+    # case: permissions-job-closes-pipeline
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/release.yml@main
+    permissions:
+      contents: read

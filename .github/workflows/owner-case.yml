@@ -1,0 +1,9 @@
+name: owner-case
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  call:
+    # case: pipeline-owner-case
+    uses: claudiomascaro/MEADA-SMOKE-SHARED/.github/workflows/string-on.yml@main

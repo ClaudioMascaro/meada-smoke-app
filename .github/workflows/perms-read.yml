@@ -1,0 +1,11 @@
+name: perms-read
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  call:
+    # case: permissions-job-read
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/release.yml@main
+    permissions:
+      contents: read

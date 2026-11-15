@@ -1,0 +1,9 @@
+name: absent-pipeline
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  call:
+    # case: pipeline-absent
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/gone.yml@main

@@ -1,0 +1,7 @@
+name: local-action of app
+description: local-action of app
+runs:
+  using: composite
+  steps:
+    - run: echo "local-action of app"
+      shell: bash

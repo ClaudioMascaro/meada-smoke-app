@@ -1,0 +1,9 @@
+name: not-reusable
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  call:
+    # case: pipeline-not-reusable
+    uses: ClaudioMascaro/meada-smoke-shared/.github/workflows/not-reusable.yml@main
