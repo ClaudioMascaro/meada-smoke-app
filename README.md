@@ -33,3 +33,9 @@ The cross-repository table in `CASES.md` names the expected providers, levels, o
 Two scenario branches preserve the filesystem states for issue #932. Switch the app checkout to `case/932-linked-decision` or `case/932-malformed-target`, keep lib and shared at the same revisions, and compare `meada decide --list` with `meada decide --prune`.
 
 To reproduce the Go upgrade case, use two fresh sets of sibling checkouts at identical corpus commits. In the first app checkout run the #941 binary's `index`, then the #943 binary's `export`, `index` and `export`. In the second app checkout run #943's `index` and `export`. Compare the `consumer` and `provider` fields of the `http::POST::/orders` links. The expected caller set and the observed discrepancy are recorded in [meada#946](https://github.com/ClaudioMascaro/meada/issues/946).
+
+The [returned-base cases](CASES.md#http-clients-that-return-the-base-url) use
+the eight HTTP language packs. To index them, clone the three repositories as
+siblings, check this app out at `validate/returned-order-authority`, lib at
+`cb746acf3fef864145d4cedad8a21977414b3309` and shared at
+`0aabcee48fe9d2d2e401a514bcfd0f4af8984501`. Run `meada export` from app.
