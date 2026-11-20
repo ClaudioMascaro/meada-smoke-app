@@ -15,7 +15,7 @@ def inventory(export):
     prefix = export["repository"] + "::"
     for kind, field in [("symbols", "id"), ("calls", "id"), ("providers", "site"), ("consumers", "site")]:
         for row in export[kind]:
-            site = row[field].removeprefix(prefix)
+            site = "." if row[field] == export["repository"] else row[field].removeprefix(prefix)
             counts[kind, site, row.get("contract")] += 1
     return counts
 
@@ -31,6 +31,27 @@ def overlay(source, destination):
 
 
 class GoldenSmoke(CorpusCase):
+    def test_infrastructure_queries(self):
+        fixtures = Path(os.environ["MEADA_SOURCE"]) / "tests/fixtures"
+        for fixture, symbol, edge in [
+            ("serverless-nodes", "functions.createOrder", "OrdersQueue via Ref"),
+            ("cloudformation-nodes", "OrdersFunction", "OrdersApi via Ref"),
+            ("kubernetes-nodes", "Ingress.networking.k8s.io/shop-dev/dev-edge",
+             "Service/shop-dev/dev-api via backend"),
+        ]:
+            with self.subTest(fixture=fixture):
+                destination = self.shared / fixture
+                overlay(fixtures / fixture, destination)
+                search, context, trace = self.mcp([
+                    ("search", {"kind": "iac", "query": symbol}),
+                    ("context", {"symbol": symbol}),
+                    ("trace", {"from": symbol, "direction": "down"}),
+                ])
+                self.assertIn(self.shared.name + " " + fixture + "/", search)
+                self.assertIn(symbol, context)
+                self.assertIn(edge, trace)
+                shutil.rmtree(destination)
+
     def test_gcp_run(self):
         source = Path(os.environ["MEADA_SOURCE"]) / "tests/fixtures/gcp-run"
         shutil.copyfile(source / "main.tf", self.shared / "run.tf")
@@ -82,6 +103,8 @@ class GoldenSmoke(CorpusCase):
 
 # The comparison assumes a standalone export at the fixture root with no injected peers.
 CASES = """
+asyncapi-events chain-catalog channels-api channels-jobs-api channels-queues-api documents-shapes
+gateway-billing http-api http-express iac-http-sam iac-http-serverless iac-http-terraform
 aws-sdk-alias-env aws-sdk-batches aws-sdk-csharp aws-sdk-go aws-sdk-java aws-sdk-origins
 azure-sdk-arrow-bindings azure-sdk-csharp azure-sdk-env azure-sdk-go azure-sdk-java
 azure-sdk-mutations azure-sdk-origins azure-sdk-overloads azure-sdk-python azure-sdk-same-handler

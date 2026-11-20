@@ -44,6 +44,28 @@ class CorpusCase(unittest.TestCase):
         return run
 
 
+    def mcp(self, calls):
+        messages = [
+            {"id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05",
+             "capabilities": {}, "clientInfo": {"name": "smoke", "version": "1"}}},
+            {"method": "notifications/initialized"},
+        ]
+        for number, (tool, args) in enumerate(calls, 2):
+            messages.append({"id": number, "method": "tools/call",
+                             "params": {"name": tool, "arguments": args}})
+        wire = "".join(json.dumps(dict(jsonrpc="2.0", **message)) + "\n" for message in messages)
+        results = self.cli("mcp", stdin=wire)
+        replies = {msg["id"]: msg["result"] for line in results.stdout.splitlines()
+                   if "id" in (msg := json.loads(line))}
+        self.assertEqual(set(replies), set(range(1, len(calls) + 2)))
+        answers = []
+        for number in range(2, len(calls) + 2):
+            result = replies[number]
+            self.assertFalse(result.get("isError"), result)
+            answers.append(result["content"][0]["text"])
+        return answers
+
+
 class WorkspaceSmoke(CorpusCase):
     def test_workspace_and_solo_scope(self):
         self.cli("index")
@@ -133,6 +155,32 @@ func order() (*http.Request, error) {{
             self.assertIn("a base_url_env of peer " + OWNER + self.lib.name, link["reason"])
             self.assertTrue(link["provider"].startswith(OWNER + self.lib.name + "::"), link)
 
+        # Exercise the open item's real CLI path. Select the one provider, first as a preview.
+        site = OWNER + self.app.name + "::shadow/client.go::order::http.NewRequest#0"
+        decisions = self.app / "meada.decisions.toml"
+        preview = self.cli("decide", "--item", site, "--dry-run", stdin="1\n").stdout
+        self.assertIn(site, preview)
+        self.assertFalse(decisions.exists())
+        self.cli("decide", "--item", site, stdin="1\n")
+        self.assertIn(site, decisions.read_text())
+        self.assertNotIn(site, self.cli("decide", "--list").stdout)
+        route.unlink()
+        self.assertIn("stale decision", self.cli("status").stdout)
+        self.cli("decide", "--prune")
+        self.assertNotIn(site, decisions.read_text() if decisions.exists() else "")
+
+    def test_local_refresh_failure(self):
+        self.cli("index")
+        index = self.lib / ".meada/index.db"
+        self.assertTrue(index.is_file())
+        with sqlite3.connect(index) as db:
+            db.execute("DROP TABLE symbols")
+        source = self.lib / "src/smoke_cli/main.py"
+        with source.open("a") as f:
+            f.write("\n# changed after indexing\n")
+        line = self.cli("status").stdout.splitlines()[-1]
+        self.assertIn(OWNER + self.lib.name + ": no such table: symbols", line)
+
     def test_language_packs_and_incremental_refresh(self):
         samples = {
             "demo.cs": "class Demo { static int marker() => 1; }",
@@ -164,30 +212,14 @@ func order() (*http.Request, error) {{
 
     def test_mcp_three_repository_trace(self):
         site = OWNER + self.app.name + '::.github/workflows/ci.yml::jobs["through-lib"]'
-        messages = [
-            {"id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05",
-             "capabilities": {}, "clientInfo": {"name": "smoke", "version": "1"}}},
-            {"method": "notifications/initialized"},
-        ]
-        for number, tool, args in [
-            (2, "search", {"kind": "ci", "query": "through-lib"}),
-            (3, "context", {"symbol": site}),
-            (4, "trace", {"from": site, "direction": "down"}),
-        ]:
-            messages.append({"id": number, "method": "tools/call",
-                             "params": {"name": tool, "arguments": args}})
-        wire = "".join(json.dumps(dict(jsonrpc="2.0", **message)) + "\n" for message in messages)
-        results = self.cli("mcp", stdin=wire)
-        replies = {msg["id"]: msg["result"] for line in results.stdout.splitlines()
-                   if "id" in (msg := json.loads(line))}
-        self.assertEqual(set(replies), {1, 2, 3, 4})
-        for number in (2, 3, 4):
-            self.assertFalse(replies[number].get("isError"), replies[number])
-        def answer(number):
-            return replies[number]["content"][0]["text"]
-        self.assertIn('jobs["through-lib"]', answer(2))
-        self.assertIn(OWNER + self.lib.name + " .github/workflows/check.yml", answer(3))
-        trace = answer(4)
+        answers = self.mcp([
+            ("search", {"kind": "ci", "query": "through-lib"}),
+            ("context", {"symbol": site}),
+            ("trace", {"from": site, "direction": "down"}),
+        ])
+        self.assertIn('jobs["through-lib"]', answers[0])
+        self.assertIn(OWNER + self.lib.name + " .github/workflows/check.yml", answers[1])
+        trace = answers[2]
         positions = [trace.index(OWNER + name + " .github/workflows/" + workflow)
                      for name, workflow in [(self.app.name, "ci.yml"), (self.lib.name, "check.yml"),
                                             (self.shared.name, "build.yml")]]
