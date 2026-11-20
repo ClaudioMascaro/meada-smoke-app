@@ -1,4 +1,4 @@
-index_dir = ".smoke-indexes"
+index_dir = "../.smoke-indexes"
 
 [[repository]]
 repo = "github.com/claudiomascaro/meada-smoke-app"
