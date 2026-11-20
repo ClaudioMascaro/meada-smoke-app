@@ -13,10 +13,24 @@ def inventory(export):
     """Keep multiplicity, symbol/call locations and the roles and sites of contracts."""
     counts = Counter()
     prefix = export["repository"] + "::"
-    for kind, field in [("symbols", "id"), ("calls", "id"), ("providers", "site"), ("consumers", "site")]:
+    for kind in ("symbols", "calls", "providers", "consumers"):
         for row in export[kind]:
-            site = "." if row[field] == export["repository"] else row[field].removeprefix(prefix)
-            counts[kind, site, row.get("contract")] += 1
+            if kind in ("symbols", "calls"):
+                normalized = dict(row)
+                for field in ("id", "caller", "target", "decorates"):
+                    if normalized.get(field):
+                        normalized[field] = normalized[field].removeprefix(prefix)
+                if "candidates" in normalized:
+                    normalized["candidates"] = [candidate.removeprefix(prefix)
+                                                for candidate in normalized["candidates"]]
+                counts[kind, json.dumps(normalized, sort_keys=True)] += 1
+            else:
+                site = "." if row["site"] == export["repository"] else row["site"].removeprefix(prefix)
+                counts[kind, site, row.get("contract")] += 1
+    for link in export["links"]:
+        if link["consumer"].startswith(prefix) and link["provider"].startswith(prefix):
+            counts["link", link["consumer"].removeprefix(prefix),
+                   link["provider"].removeprefix(prefix), link["contract"], link["level"]] += 1
     return counts
 
 
