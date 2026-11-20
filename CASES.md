@@ -49,20 +49,38 @@ smoke of Meada checks against it. A case marked "open" has no expected answer ye
 | `permissions-write-all` | app perms-write-all.yml | runs | link, no flag |
 | `permissions-empty` | app perms-empty.yml | refused: `build.yml` asks `contents: read`, `{}` holds none | link with `permissions mismatch: contents read against none` |
 | `permissions-job-closes-pipeline` | app perms-job-over-pipeline.yml | refused: the CI job's block replaces the pipeline's | link with `permissions mismatch` |
-| `install-path` | app run.yml installed | installs the package of `tools/greeter` | consumer of `package::pypi::meada-smoke-greeter` |
-| `program-after-install` | app run.yml installed | runs `smoke-greet` of that package | program link, `exact` |
+| `install-path` | app run.yml installed | installs the package of `tools/greeter` | no named package side for a path install |
+| `program-after-install` | app run.yml installed | runs `smoke-greet` of that package | program link, `inferred` (path install has no named package side) |
 | `install-name` | app run.yml by-name | installs the wheel built one step before (`--no-index`) | consumer of the package, by name |
-| `program-after-name-install` | app run.yml by-name | runs `smoke-greet` | program link, `exact` |
+| `program-after-name-install` | app run.yml by-name | runs `smoke-greet` | program link, `inferred`; its named package was installed earlier in the CI job |
 | `program-no-install` | app run.yml hidden-install | runs `smoke-greet`: a called script installed it | program link, `inferred` |
-| `install-pipx` | app run.yml pipx | installs with pipx | consumer of the package |
-| `program-after-pipx` | app run.yml pipx | runs `smoke-greet` | program link, `exact` |
+| `install-pipx` | app run.yml pipx | installs with pipx | no named package side for this local path |
+| `program-after-pipx` | app run.yml pipx | runs `smoke-greet` | program link, `inferred` (local path) |
 | `echo-is-no-command` | app run.yml negatives | prints the text | no side |
 | `heredoc-not-read` | app run.yml negatives | prints the text | no side |
 | `command-after-and` | app run.yml negatives | runs `pip --version` | no side: no install |
 | `docker-push` | app run.yml image | pushes to the registry of the CI job | image builder `localhost:5000/smoke/app`, sited on the CI step |
 | `docker-build-no-push` | app run.yml image | builds, pushes nothing | no side |
-| `lib-install-path` | lib ci.yml test | installs the package of lib | consumer of `package::pypi::meada-smoke-cli` |
-| `lib-program-after-install` | lib ci.yml test | runs `smoke-cli` | program link, `exact` |
-| `install-vcs-url` | app run-cross.yml (by hand, corpus public) | installs lib from its Git URL | consumer of `package::pypi::meada-smoke-cli` |
+| `lib-install-path` | lib ci.yml test | installs the package of lib | no named package side for `pip install .` |
+| `lib-program-after-install` | lib ci.yml test | runs `smoke-cli` | program link to the lib entry point, `inferred` |
+| `install-vcs-url` | app run-cross.yml (by hand, corpus public) | installs lib from its Git URL | no named package side for a Git URL |
 | `program-of-another-repository` | app run-cross.yml | runs `smoke-cli` of lib | program link across repositories |
 | `orphan` | shared orphan.yml | never runs: nobody calls it | `orphan ci::` line in a scope that holds the callers |
+
+## Cross-repository index
+
+Use the three checkouts in the README. Each source and counterpart below is tracked in Git. The expected answers identify both ends so that a link to the wrong peer fails the case.
+
+| Case | Source | Expected index |
+|---|---|---|
+| Go neutral field (#933) | app `orders/neutral/client.go` | `Client.CreateOrder` links to lib `openapi.yaml::POST /orders` at `inferred` through `SMOKE_ORDERS_URL`. |
+| Go keys named like imports (#933) | app `orders/httpkey/client.go`, `orders/oskey/client.go` | Both calls have the same provider, reason and level as the neutral control. |
+| Go parameter shadows an import (#933) | app `orders/shadow/client.go` | One open Go call, with lib's route as its candidate. |
+| Persisted Go extraction ([meada#946](https://github.com/ClaudioMascaro/meada/issues/946)) | Same app and lib commits, index first built by the CLI before the Go fix | Upgrading the CLI and indexing again should resolve the same three clients as a cold index. On #943 the warm index still resolves only the neutral client. |
+| Alert routing | app `monitoring/rules.yaml`, lib `alertmanager.yaml` | The `team=orders` emitter matches the lib receiver at `exact`. The app's `team=retired` has no matcher and the lib's `team=inventory` has no emitter. |
+| Queue provisioning | app `config/queues.yaml`, lib `queues.tf` | The `orders` ARN has an `exact` provision from lib's `aws_sqs_queue.orders`. The `legacy` ARN has no provisioner and the `idle` queue has no use. |
+| Container image | app `.github/workflows/run.yml`, lib `compose.yaml` | The lib service `orders` links to the app's pushed `localhost:5000/smoke/app` at `exact`. The `preview` image has no runner and `retired` has no builder. |
+| CI chain and orphan scope (#855) | app `ci.yml` through-lib, lib `check.yml`, shared `build.yml` and `orphan.yml` | Trace crosses app → lib → shared. In the three-repository status, shared's orphan has no consumer in the workspace. With shared cloned alone the line names shared. |
+| Partial manifest (#934) | app `meada.workspace.toml` | Before indexing, status reports three repositories and the pending evaluation. After indexing, all three are indexed and the warning clears. |
+| Linked decision (#932) | app branch `case/932-linked-decision`, lib `orders/decisions.toml` | Reading the link resolves the shadowed Go call to the lib route. A saving mode refuses the link and preserves it and its target. |
+| Malformed linked target (#932) | app branch `case/932-malformed-target`, link to lib `openapi.yaml` | A read reports the decisions parsing error. A saving mode should identify the symlink before attempting that parse. |

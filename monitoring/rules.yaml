@@ -1,0 +1,9 @@
+groups:
+  - name: orders
+    rules:
+      - alert: OrdersDown
+        expr: up == 0
+        labels: {team: orders}
+      - alert: OldWorkerDown
+        expr: up == 0
+        labels: {team: retired}

@@ -5,3 +5,4 @@ path = "../meada-smoke-shared"
 [[peer]]
 repo = "github.com/claudiomascaro/meada-smoke-lib"
 path = "../meada-smoke-lib"
+base_url_env = ["SMOKE_ORDERS_URL"]

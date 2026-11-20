@@ -1,0 +1,2 @@
+orders: arn:aws:sqs:us-east-1:111111111111:smoke-orders
+legacy: arn:aws:sqs:us-east-1:111111111111:smoke-legacy
