@@ -102,3 +102,34 @@ running Meada.
 | `evidence/recursive.go`, `PlainA` and `PlainB` | The independently called wrapper sends GET to `/plain-a` and `/plain-b`. Neither uses the recursive wrapper. |
 | `mutation/store.go`, `Archive`, `Choose` and `Current` | `Archive` writes `orders-archive`. `Choose` may write either table. Neither can be an exact write to `orders` alone. `Current` writes `orders` exactly. Both tables are defined by lib's `archive.tf`. |
 | `overloads/Formats.java`, `textOrder` and `countOrders` | The two `encode` overloads each take one unlabeled argument. Java chooses by argument type. Meada's existing rule leaves both calls ambiguous. |
+
+## HTTP clients that return the base URL
+
+Use this app branch together with lib at `cb746acf3fef864145d4cedad8a21977414b3309`
+and shared at `0aabcee48fe9d2d2e401a514bcfd0f4af8984501`. Both peers serve
+`POST /orders`. Only lib owns `SMOKE_ORDERS_URL` in this app's peer configuration.
+Shared declares the host `shared.smoke.example`.
+
+| Source under `orders/clients/` | Expected result from the source |
+|---|---|
+| C#, Rust, Swift and TypeScript order clients | The helper returns the configured base. Each POST links to lib at `inferred` through `SMOKE_ORDERS_URL`. |
+| Go `SendConfigured` and Python `send_configured` | Each uses the environment reader's return value and links to lib with the same reason. |
+| Go `SendShared` | The deferred function overwrites the named result with shared's host before the caller receives it. A link from this caller to lib is a false positive. |
+| Python `send_shared` | The decorator factory installs a replacement callable returning shared's host. A link from this caller to lib is a false positive. |
+| Java and Kotlin `sendOrder` | Each calls its own class's private `ordersBase()`. Both POSTs should link to lib. Renaming one private helper and its call should preserve both answers. |
+
+From app, run `meada export`. Filter `calls` by `id`, `consumers` by `site` and
+`links` by `consumer` for the path `orders/clients/`. For the Go and Python
+overrides, a reader that cannot establish the replacement host may leave the
+endpoint unresolved. The original function body's environment read cannot
+justify selecting lib.
+
+### SQS provisioning through a returned URL
+
+The three senders in `orders/events/publisher.ts` use the SQS SDK. Both
+`publishOrder` (a returned queue URL) and `publishLiteral` target
+`smoke-orders`. Each should have one exact provisioning link to
+lib's `queues.tf::aws_sqs_queue.orders`. The third sender, `publishSelected`,
+chooses between `smoke-legacy` and `smoke-orders` at runtime. It cannot
+unconditionally name lib's `orders` queue. Check the `provisions` array for
+each sender separately.
