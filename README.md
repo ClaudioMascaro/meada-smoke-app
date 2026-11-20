@@ -31,3 +31,5 @@ meada status
 The cross-repository table in `CASES.md` names the expected providers, levels, open calls and unmatched counterparts. To exercise server-mode indexing, run `meada status --workspace meada.workspace.toml` before and after `meada index --workspace meada.workspace.toml`. That manifest stores its indexes beside the three checkouts in `../.smoke-indexes/`.
 
 Two scenario branches preserve the filesystem states for issue #932. Switch the app checkout to `case/932-linked-decision` or `case/932-malformed-target`, keep lib and shared at the same revisions, and compare `meada decide --list` with `meada decide --prune`.
+
+To reproduce the Go upgrade case, use two fresh sets of sibling checkouts at identical corpus commits. In the first app checkout run the #941 binary's `index`, then the #943 binary's `export`, `index` and `export`. In the second app checkout run #943's `index` and `export`. Compare the `consumer` and `provider` fields of the `http::POST::/orders` links. The expected caller set and the observed discrepancy are recorded in [meada#946](https://github.com/ClaudioMascaro/meada/issues/946).
