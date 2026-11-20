@@ -76,6 +76,7 @@ Use the three checkouts in the README. Each source and counterpart below is trac
 | Go neutral field (#933) | app `orders/neutral/client.go` | `Client.CreateOrder` links to lib `openapi.yaml::POST /orders` at `inferred` through `SMOKE_ORDERS_URL`. |
 | Go keys named like imports (#933) | app `orders/httpkey/client.go`, `orders/oskey/client.go` | Both calls have the same provider, reason and level as the neutral control. |
 | Go parameter shadows an import (#933) | app `orders/shadow/client.go` | One open Go call, with lib's route as its candidate. |
+| Persisted Go extraction ([meada#946](https://github.com/ClaudioMascaro/meada/issues/946)) | Same app and lib commits, index first built by the CLI before the Go fix | Upgrading the CLI and indexing again should resolve the same three clients as a cold index. On #943 the warm index still resolves only the neutral client. |
 | Alert routing | app `monitoring/rules.yaml`, lib `alertmanager.yaml` | The `team=orders` emitter matches the lib receiver at `exact`. The app's `team=retired` has no matcher and the lib's `team=inventory` has no emitter. |
 | Queue provisioning | app `config/queues.yaml`, lib `queues.tf` | The `orders` ARN has an `exact` provision from lib's `aws_sqs_queue.orders`. The `legacy` ARN has no provisioner and the `idle` queue has no use. |
 | Container image | app `.github/workflows/run.yml`, lib `compose.yaml` | The lib service `orders` links to the app's pushed `localhost:5000/smoke/app` at `exact`. The `preview` image has no runner and `retired` has no builder. |
