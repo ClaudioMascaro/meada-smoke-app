@@ -123,3 +123,13 @@ From app, run `meada export`. Filter `calls` by `id`, `consumers` by `site` and
 overrides, a reader that cannot establish the replacement host may leave the
 endpoint unresolved. The original function body's environment read cannot
 justify selecting lib.
+
+### SQS provisioning through a returned URL
+
+The three senders in `orders/events/publisher.ts` use the SQS SDK. Both
+`publishOrder` (a returned queue URL) and `publishLiteral` target
+`smoke-orders`. Each should have one exact provisioning link to
+lib's `queues.tf::aws_sqs_queue.orders`. The third sender, `publishSelected`,
+chooses between `smoke-legacy` and `smoke-orders` at runtime. It cannot
+unconditionally name lib's `orders` queue. Check the `provisions` array for
+each sender separately.
