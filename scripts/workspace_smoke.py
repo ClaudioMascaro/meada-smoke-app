@@ -308,6 +308,20 @@ func order() (*http.Request, error) {{
         with sqlite3.connect(index) as db:
             self.assertEqual(db.execute("PRAGMA user_version").fetchone(), (1,))
 
+    def test_manifest_states(self):
+        args = ("--workspace", str(self.manifest))
+        for locale, expected in [
+            ("en_US", "run meada index --workspace"),
+            ("pt_BR", "rode meada index --workspace"),
+            ("es_ES", "ejecuta meada index --workspace"),
+        ]:
+            with self.subTest(locale=locale):
+                status = self.cli("status", *args, code=1, lang=locale + ".UTF-8").stdout
+                self.assertIn(expected, status)
+                self.assertFalse((self.root / "indexes").exists())
+        self.manifest.write_text('index_dir = "indexes"\n')
+        self.assertEqual(self.cli("status", *args, code=1).stdout, "workspace: 0 repositories\n")
+
     def test_manifest_diagnostic(self):
         args = ("--workspace", str(self.manifest))
         self.cli("index", *args)
