@@ -84,3 +84,21 @@ Use the three checkouts in the README. Each source and counterpart below is trac
 | Partial manifest (#934) | app `meada.workspace.toml` | Before indexing, status reports three repositories and the pending evaluation. After indexing, all three are indexed and the warning clears. |
 | Linked decision (#932) | app branch `case/932-linked-decision`, lib `orders/decisions.toml` | Reading the link resolves the shadowed Go call to the lib route. A saving mode refuses the link and preserves it and its target. |
 | Malformed linked target (#932) | app branch `case/932-malformed-target`, link to lib `openapi.yaml` | A read reports the decisions parsing error. A saving mode should identify the symlink before attempting that parse. |
+
+## Resolution controls
+
+Use the `validate/index-and-resolution-stability` branches of app, lib and shared together.
+Lib's `openapi.yaml` and shared's `openapi.yaml` both declare `POST /orders`. The app
+declares `SMOKE_ORDERS_URL` only for lib. These expected answers are derived from source before
+running Meada.
+
+| Source under `orders/` | Expected |
+|---|---|
+| `evidence/client.go`, `Client.ViaMethod` and `ViaParameter` | Both send `POST /orders` to the base named by `SMOKE_ORDERS_URL`. Lib alone is the peer declared for that variable. Both links are inferred. |
+| `evidence/client.go`, `Relative` | There is no authority in `/orders`. Both lib and shared serve the verb and path, so the link is ambiguous. |
+| `evidence/client.go`, `ViaUnknownParameter` | The argument is not known from source. The base stays unreadable and neither provider is chosen. |
+| `evidence/client.go`, `QueryAppend` and `QuerySuffix` | Only the query varies. Both link at inferred to lib's `POST /orders`. |
+| `evidence/client.go`, `PathSuffix` | The suffix can change the path. Lib's `POST /orders` is not uniquely established. |
+| `evidence/recursive.go`, `PlainA` and `PlainB` | The independently called wrapper sends GET to `/plain-a` and `/plain-b`. Neither uses the recursive wrapper. |
+| `mutation/store.go`, `Archive`, `Choose` and `Current` | `Archive` writes `orders-archive`. `Choose` may write either table. Neither can be an exact write to `orders` alone. `Current` writes `orders` exactly. Both tables are defined by lib's `archive.tf`. |
+| `overloads/Formats.java`, `textOrder` and `countOrders` | The two `encode` overloads each take one unlabeled argument. Java chooses by argument type. Meada's existing rule leaves both calls ambiguous. |
