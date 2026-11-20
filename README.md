@@ -10,15 +10,24 @@ of these pipelines on GitHub are the record that settles each row: a pipeline th
 be refused is a case, not a broken build. `meada.toml` names the two peers, so the three
 repositories index as one workspace when cloned side by side.
 
-## Running the workspace smoke
+## Indexing the Orders workspace
 
-Clone this repository, meada-smoke-shared and meada-smoke-lib side by side. On a Unix host with Python 3.9 or later and Git, run the following from this repository. Use the CLI built from the commit under review. For the second command, point MEADA_SOURCE to the Meada checkout at that commit.
+The Go clients in this repository call the Orders API declared in the lib repository. The app publishes an image and emits alerts. Lib deploys the image, routes the alerts and provisions an SQS queue used by the app. The existing app → lib → shared workflow chain exercises a third repository.
+
+To reproduce the corpus while the companion PRs are open, start from a fresh directory:
 
 ```sh
-MEADA=/absolute/path/to/meada python3 -B scripts/workspace_smoke.py -v
-MEADA=/absolute/path/to/meada MEADA_SOURCE=/absolute/path/to/meada-checkout python3 -B scripts/golden_smoke.py -v
+git clone -b validate/workspace-contracts https://github.com/ClaudioMascaro/meada-smoke-app
+git clone -b validate/workspace-contracts https://github.com/ClaudioMascaro/meada-smoke-lib
+git clone https://github.com/ClaudioMascaro/meada-smoke-shared
+git -C meada-smoke-shared checkout 51703923bd1f76c0b948db8afb1fa52fe86300c1
+cd meada-smoke-app
+meada index
+meada export
+meada decide --list
+meada status
 ```
 
-Each test creates fresh local clones at the checked-out commits and assigns the published GitHub origins. Changes to files, symlinks, manifests and SQLite indexes happen in those disposable clones. Test cases use the CLI binary and its MCP stdio endpoint. The runner does not execute fixture programs or trigger workflows. A failing assertion makes the command exit nonzero. Pass a unittest name such as `WorkspaceSmoke.test_manifest_diagnostic` to isolate one case.
+The cross-repository table in `CASES.md` names the expected providers, levels, open calls and unmatched counterparts. To exercise server-mode indexing, run `meada status --workspace meada.workspace.toml` before and after `meada index --workspace meada.workspace.toml`. That manifest stores its indexes in `.smoke-indexes/`.
 
-The workspace suite exercises the three-repository CI trace, package resolution, language readers, resource and alert routing, image links, file refresh, orphan scope, decision-file links, Go import handling and partial indexes. The golden suite overlays version-matched Meada fixtures onto the smoke peers. It compares symbol hashes and spans, call targets, candidates and levels, the multiplicity and site of each contract side, and the endpoints and levels of links within the peer against the reviewed export plus the peer's original inventory. Separate cases check Cloud Run and AsyncAPI across repository boundaries and query Kubernetes, CloudFormation and Serverless resources over MCP. The Go case resolves an open item interactively, removes its route, checks the stale decision and prunes it. Optional server services, browser UI and deployment need their own integration environment.
+Two scenario branches preserve the filesystem states for issue #932. Switch the app checkout to `case/932-linked-decision` or `case/932-malformed-target`, keep lib and shared at the same revisions, and compare `meada decide --list` with `meada decide --prune`.

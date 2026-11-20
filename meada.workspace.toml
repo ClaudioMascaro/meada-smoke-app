@@ -1,0 +1,13 @@
+index_dir = ".smoke-indexes"
+
+[[repository]]
+repo = "github.com/claudiomascaro/meada-smoke-app"
+path = "."
+
+[[repository]]
+repo = "github.com/claudiomascaro/meada-smoke-shared"
+path = "../meada-smoke-shared"
+
+[[repository]]
+repo = "github.com/claudiomascaro/meada-smoke-lib"
+path = "../meada-smoke-lib"

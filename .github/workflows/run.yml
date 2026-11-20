@@ -73,5 +73,7 @@ jobs:
       - run: |
           docker build -t localhost:5000/smoke/app:1 .
           docker push localhost:5000/smoke/app:1
+          docker tag localhost:5000/smoke/app:1 localhost:5000/smoke/preview:1
+          docker push localhost:5000/smoke/preview:1
       # case: docker-build-no-push
       - run: docker build -t localhost:5000/smoke/unpushed:1 .
