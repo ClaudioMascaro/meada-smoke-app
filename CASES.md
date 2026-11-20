@@ -49,20 +49,20 @@ smoke of Meada checks against it. A case marked "open" has no expected answer ye
 | `permissions-write-all` | app perms-write-all.yml | runs | link, no flag |
 | `permissions-empty` | app perms-empty.yml | refused: `build.yml` asks `contents: read`, `{}` holds none | link with `permissions mismatch: contents read against none` |
 | `permissions-job-closes-pipeline` | app perms-job-over-pipeline.yml | refused: the CI job's block replaces the pipeline's | link with `permissions mismatch` |
-| `install-path` | app run.yml installed | installs the package of `tools/greeter` | consumer of `package::pypi::meada-smoke-greeter` |
-| `program-after-install` | app run.yml installed | runs `smoke-greet` of that package | program link, `exact` |
+| `install-path` | app run.yml installed | installs the package of `tools/greeter` | no named package side for a path install |
+| `program-after-install` | app run.yml installed | runs `smoke-greet` of that package | program link, `inferred` (path install has no named package side) |
 | `install-name` | app run.yml by-name | installs the wheel built one step before (`--no-index`) | consumer of the package, by name |
-| `program-after-name-install` | app run.yml by-name | runs `smoke-greet` | program link, `exact` |
+| `program-after-name-install` | app run.yml by-name | runs `smoke-greet` | program link, `inferred`; its named package was installed earlier in the CI job |
 | `program-no-install` | app run.yml hidden-install | runs `smoke-greet`: a called script installed it | program link, `inferred` |
-| `install-pipx` | app run.yml pipx | installs with pipx | consumer of the package |
-| `program-after-pipx` | app run.yml pipx | runs `smoke-greet` | program link, `exact` |
+| `install-pipx` | app run.yml pipx | installs with pipx | no named package side for this local path |
+| `program-after-pipx` | app run.yml pipx | runs `smoke-greet` | program link, `inferred` (local path) |
 | `echo-is-no-command` | app run.yml negatives | prints the text | no side |
 | `heredoc-not-read` | app run.yml negatives | prints the text | no side |
 | `command-after-and` | app run.yml negatives | runs `pip --version` | no side: no install |
 | `docker-push` | app run.yml image | pushes to the registry of the CI job | image builder `localhost:5000/smoke/app`, sited on the CI step |
 | `docker-build-no-push` | app run.yml image | builds, pushes nothing | no side |
-| `lib-install-path` | lib ci.yml test | installs the package of lib | consumer of `package::pypi::meada-smoke-cli` |
-| `lib-program-after-install` | lib ci.yml test | runs `smoke-cli` | program link, `exact` |
-| `install-vcs-url` | app run-cross.yml (by hand, corpus public) | installs lib from its Git URL | consumer of `package::pypi::meada-smoke-cli` |
+| `lib-install-path` | lib ci.yml test | installs the package of lib | no named package side for `pip install .` |
+| `lib-program-after-install` | lib ci.yml test | runs `smoke-cli` | program link to the lib entry point, `inferred` |
+| `install-vcs-url` | app run-cross.yml (by hand, corpus public) | installs lib from its Git URL | no named package side for a Git URL |
 | `program-of-another-repository` | app run-cross.yml | runs `smoke-cli` of lib | program link across repositories |
 | `orphan` | shared orphan.yml | never runs: nobody calls it | `orphan ci::` line in a scope that holds the callers |
