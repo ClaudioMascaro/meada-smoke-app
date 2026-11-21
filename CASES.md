@@ -124,6 +124,26 @@ overrides, a reader that cannot establish the replacement host may leave the
 endpoint unresolved. The original function body's environment read cannot
 justify selecting lib.
 
+### Class decorator replacing the URL method
+
+The separate [Meada #962](https://github.com/ClaudioMascaro/meada/issues/962)
+probe is `orders/clients/python/class_probe.py`. From the app run
+`SMOKE_ORDERS_URL=https://lib.smoke.example python3 scripts/record-class-authority.py`.
+The recorder substitutes the transport in-process and prints each caller, verb and URL.
+Both peers still declare `POST /orders`, with the environment key belonging to lib.
+
+| Source state | Changed.send | Ordinary.send |
+|---|---|---|
+| As committed | POST to `https://shared.smoke.example/orders` | POST to `https://lib.smoke.example/orders` |
+| Remove only `@install` | POST to `https://lib.smoke.example/orders` | POST to `https://lib.smoke.example/orders` |
+| Restore `@install` | POST to `https://shared.smoke.example/orders` | POST to `https://lib.smoke.example/orders` |
+
+At each `requests.post#0` site that uses the original method, the environment
+authority selects lib at `inferred`. With the decorator present, a reader that
+cannot establish the replacement host leaves Changed's request open with both
+compatible POST candidates and a limit naming its origin method. Keep these
+observations separate from the ten other HTTP sites and the three SQS cases.
+
 ### SQS provisioning through a returned URL
 
 The three senders in `orders/events/publisher.ts` use the SQS SDK. Both
